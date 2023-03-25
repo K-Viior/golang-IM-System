@@ -33,21 +33,16 @@ func NewServer(ip string, port int) *Server {
 func (server *Server) Handle(conn net.Conn) {
 	//当前链接的业务
 	//fmt.Println("链接建立成功")
-	user := NewUser(conn)
-
-	//将上线的用户加入在线列表中
-	server.mapLock.Lock()
-	server.OnlineMap[user.Name] = user
-	server.mapLock.Unlock()
-	//广播用户
-	server.BroadCast(user, " is Online \n")
+	user := NewUser(conn, server)
+	//用户上线
+	user.OnLine()
 	//接收用户消息进行广播
 	go func() {
 		buf := make([]byte, 4096)
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				server.BroadCast(user, "OutLine")
+				user.OffLine()
 				return
 			}
 			if err != nil && err != io.EOF {
@@ -57,7 +52,7 @@ func (server *Server) Handle(conn net.Conn) {
 			//处理用户信息，去除'\n'
 			msg := string(buf[:n-1])
 			//将用户信息进行广播
-			server.BroadCast(user, msg)
+			user.DoMessage(msg)
 		}
 
 	}()
