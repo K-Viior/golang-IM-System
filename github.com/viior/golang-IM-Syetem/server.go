@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -40,6 +41,26 @@ func (server *Server) Handle(conn net.Conn) {
 	server.mapLock.Unlock()
 	//广播用户
 	server.BroadCast(user, " is Online \n")
+	//接收用户消息进行广播
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				server.BroadCast(user, "OutLine")
+				return
+			}
+			if err != nil && err != io.EOF {
+				log.Println("Conn Read err : ", err)
+				return
+			}
+			//处理用户信息，去除'\n'
+			msg := string(buf[:n-1])
+			//将用户信息进行广播
+			server.BroadCast(user, msg)
+		}
+
+	}()
 
 	//使当前Handler阻塞
 	select {}
@@ -47,7 +68,7 @@ func (server *Server) Handle(conn net.Conn) {
 
 // 广播消息的方法
 func (server *Server) BroadCast(user *User, msg string) {
-	sendMsg := "[" + user.Addr + "]" + user.Name + msg
+	sendMsg := "[" + user.Addr + "]" + user.Name + " : " + msg + "\n"
 	server.Message <- sendMsg
 }
 
