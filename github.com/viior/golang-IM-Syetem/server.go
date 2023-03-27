@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -37,6 +38,7 @@ func (server *Server) Handle(conn net.Conn) {
 	//用户上线
 	user.OnLine()
 	//接收用户消息进行广播
+	isLive := make(chan bool)
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -53,12 +55,25 @@ func (server *Server) Handle(conn net.Conn) {
 			msg := string(buf[:n-1])
 			//将用户信息进行广播
 			user.DoMessage(msg)
+			isLive <- true
 		}
 
 	}()
+	for {
+		select {
+		case <-isLive:
+		case <-time.After(time.Second * 10):
+			//用户超时，强制下线
+			user.sendMsg("Your time is up\n")
+			//关闭channel
+			close(user.C)
+			//关闭链接
+			user.conn.Close()
+			//结束for循环
+			return
+		}
 
-	//使当前Handler阻塞
-	select {}
+	}
 }
 
 // 广播消息的方法

@@ -36,14 +36,15 @@ func (user *User) OffLine() {
 // 用户发送消息的接口
 func (user *User) DoMessage(msg string) {
 	switch {
+	//查询在线用户
 	case msg == "who":
-		//查询在线用户
 		user.server.mapLock.Lock()
 		for _, MapUser := range user.server.OnlineMap {
 			onLineMsg := "[" + MapUser.Addr + "]" + MapUser.Name + " online\n"
 			user.sendMsg(onLineMsg)
 		}
 		user.server.mapLock.Unlock()
+		//重命名的分支
 	case len(msg) > 7 && msg[:7] == "rename|":
 		//用户名重命名
 		newName := strings.Split(msg, "|")[1]
@@ -59,6 +60,7 @@ func (user *User) DoMessage(msg string) {
 			user.Name = newName
 			user.sendMsg("Your name " + newName + " update succeeded\n")
 		}
+		//默认
 	default:
 		user.server.BroadCast(user, msg)
 	}
