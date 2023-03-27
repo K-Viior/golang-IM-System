@@ -60,6 +60,27 @@ func (user *User) DoMessage(msg string) {
 			user.Name = newName
 			user.sendMsg("Your name " + newName + " update succeeded\n")
 		}
+	case len(msg) > 4 && strings.Contains(msg, "->"):
+		//消息格式：消息体->用户名
+		//确认用户名
+		remoteName := strings.Split(msg, "->")[1]
+		if remoteName == "" {
+			user.sendMsg("The message format is incorrect, please use the format of message body->username.\n")
+			return
+		}
+		//查找用户
+		if remoteUser, ok := user.server.OnlineMap[remoteName]; !ok {
+			user.sendMsg("The target user does not exist\n")
+			return
+		} else {
+			//向用户发送消息
+			contents := strings.Split(msg, "->")[0]
+			if contents == "" {
+				user.sendMsg("No message content, please resend\n")
+				return
+			}
+			remoteUser.sendMsg(user.Name + "send to you : " + contents + "\n")
+		}
 		//默认
 	default:
 		user.server.BroadCast(user, msg)

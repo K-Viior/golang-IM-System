@@ -62,7 +62,7 @@ func (server *Server) Handle(conn net.Conn) {
 	for {
 		select {
 		case <-isLive:
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Minute):
 			//用户超时，强制下线
 			user.sendMsg("Your time is up\n")
 			//关闭channel
