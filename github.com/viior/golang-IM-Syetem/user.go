@@ -79,7 +79,7 @@ func (user *User) DoMessage(msg string) {
 				user.sendMsg("No message content, please resend\n")
 				return
 			}
-			remoteUser.sendMsg(user.Name + "send to you : " + contents + "\n")
+			remoteUser.sendMsg(user.Name + " send to you : " + contents + "\n")
 		}
 		//默认
 	default:
