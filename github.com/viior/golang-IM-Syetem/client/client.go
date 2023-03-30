@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -33,6 +35,7 @@ func NewClient(serverIp string, port int) *Client {
 	//返回客户端
 	return client
 }
+
 func (client *Client) menu() bool {
 	var flag int
 	fmt.Println("1.public chat mode")
@@ -48,17 +51,51 @@ func (client *Client) menu() bool {
 	return true
 }
 
+// 更新用户名的方法
+func (client *Client) UpdateName() bool {
+	fmt.Println("Please enter a new name")
+	fmt.Scanln(&client.Name)
+	sendMsg := "rename|" + client.Name + "\n"
+	_, err := client.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("conn.write err : ", err)
+		return false
+	}
+	return true
+}
+
+// 公聊方法
+func (client *Client) PublicChat() {
+	var chatMsg string
+	fmt.Println(">>>>Please enter the message ,exit will be down<<<<")
+	fmt.Scanln(&chatMsg)
+	for chatMsg != "exit" {
+		//发送给服务器
+		if len(chatMsg) > 0 {
+			sendMsg := chatMsg + "\n"
+			_, err := client.conn.Write([]byte(sendMsg))
+			if err != nil {
+				log.Printf("Conn write error : ", err)
+				break
+			}
+		}
+		chatMsg = ""
+		fmt.Println(">>>>Please enter the message ,exit will be down<<<<")
+		fmt.Scanln(&chatMsg)
+	}
+}
+
 func (client *Client) run() {
 	for client.flag != 0 {
 		for client.menu() != true {
 		}
 		switch client.flag {
 		case 1:
-			fmt.Println("public chat mode")
+			client.PublicChat()
 		case 2:
 			fmt.Println("private chat mode")
 		case 3:
-			fmt.Println("update username")
+			client.UpdateName()
 		}
 	}
 }
@@ -71,6 +108,10 @@ func init() {
 	flag.IntVar(&Port, "port", 8888, "Set the server port (default is 8888).")
 }
 
+// 处理server回应的消息，直接显示标准输出
+func (client *Client) DealResponse() {
+	io.Copy(os.Stdout, client.conn)
+}
 func main() {
 	//命令行解析
 	flag.Parse()
@@ -79,6 +120,8 @@ func main() {
 		log.Printf(">>>>>>>Server connect failed>>>>>")
 		return
 	}
+	//goroutine 开启处理回执消息
+	go client.DealResponse()
 	fmt.Println(">>>>>>>>Server connect success>>>>>>")
 	client.run()
 }
